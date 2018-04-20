@@ -1,11 +1,9 @@
-#/usr/bin/env python3
+# /usr/bin/env python3
 # coding: utf-8
 from PyQt5.QtCore import QThread, pyqtSignal
 from datetime import datetime
 import pcapy
 
-def mstime():
-    return int(time.time()*1000)
 
 class Sniffer(QThread):
     sig = pyqtSignal()
@@ -17,7 +15,7 @@ class Sniffer(QThread):
         self.pack_list = []
 
     def run(self):
-        cap = pcapy.open_live(self._dev, 65536, 1, 100)
+        cap = pcapy.open_live(self._dev, 0, 1, 0)
         start_time = datetime.now()
         while self._run:
             header, packet = cap.next()
@@ -36,4 +34,3 @@ class Sniffer(QThread):
     def get_pack(self):
         pack = self.pack_list.pop(0)
         return pack
- 

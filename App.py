@@ -1,11 +1,13 @@
-#/usr/bin/env python3
+# /usr/bin/env python3
 # coding: utf-8
 import sys
-from PyQt5.QtWidgets import QDialog, QApplication, QTableWidget, QTableWidgetItem, QTreeWidgetItem
+from PyQt5.QtWidgets import QDialog, QApplication, \
+        QTableWidget, QTableWidgetItem, QTreeWidgetItem
 from Gui import Ui_Main
 from Sniffer import Sniffer
 from Praser import Praser
 import pcapy
+
 
 class AppWindow(QDialog, Ui_Main):
     def __init__(self):
@@ -13,7 +15,6 @@ class AppWindow(QDialog, Ui_Main):
         self.device = None
         self.thread = None
         self.packet_list = []
-        self.ipp = {"6":"TCP", "17":"UDP", "1":"ICMP", "2":"IGMP"}
         self.setupUi(self)
         self.init_ui()
 
@@ -41,7 +42,6 @@ class AppWindow(QDialog, Ui_Main):
         # Details Tree
         self.details_tree.setHeaderHidden(True)
 
-
     def sniff_control(self, pressed):
         if pressed:
             dev = self.device_cbox.currentText()
@@ -64,33 +64,35 @@ class AppWindow(QDialog, Ui_Main):
         ptime = str(pack[0])
         plen = str(pack[1])
         raw = pack[2]
-        prase = Praser(raw)
-        packet = [ptime, plen, prase]
+        prs = Praser(raw)
+        prs.prase()
+        pk = prs.packet
+        packet = [ptime, plen, pk]
         self.packet_list.append(packet)
-        if prase.type == "0x0800":
+        if pk["FP"][0] == "0":
             # IP
             self.set_table_row(
                     ptime,
-                    prase.packet.ip_src,
-                    prase.packet.ip_dst,
-                    self.ipp[prase.packet.ip_protocol],
+                    pk["IPv4"]["Source"],
+                    pk["IPv4"]["Destination"],
+                    pk["IPv4"]["Protocol"][-4:-1],
                     plen,
-                    "None")
-        elif prase.type == "0x0806":
+                    pk["Info"])
+        elif pk["FP"][0] == "1":
             # ARP
             self.set_table_row(
                     ptime,
-                    prase.mac_src,
-                    prase.mac_dst,
+                    pk["ARP"]["Source"],
+                    pk["ARP"]["Destination"],
                     "ARP",
                     plen,
-                    "None")
+                    pk["Info"])
         else:
             # Unknow Protocol
             self.set_table_row(
                     ptime,
-                    prase.mac_src,
-                    prase.mac_dst,
+                    pk["Ethernet"]["Source"],
+                    pk["Ethernet"]["Destination"],
                     "Unknow",
                     plen,
                     "None")
@@ -105,22 +107,31 @@ class AppWindow(QDialog, Ui_Main):
         self.packet_table.setItem(row, 4, QTableWidgetItem(plen))
         self.packet_table.setItem(row, 5, QTableWidgetItem(info))
 
-    def set_tree_row(self,row_num):
-        packet = self.packet_list[row_num]
-        prase = packet[2]
-        frame_root = QTreeWidgetItem(["Frame {0}: {1} byte on {2}".format(str(row_num+1), packet[1], self.device)])
+    def set_tree_row(self, row_num):
+        pack = self.packet_list[row_num]
+        ptime = pack[0]
+        plen = pack[1]
+        pk = pack[2]
+        frame_root = QTreeWidgetItem(["Frame {0}: {1} byte on {2}".format(str(row_num+1), plen, self.device)])
         frame_root.addChild(QTreeWidgetItem(["Interface Name: " + self.device]))
         frame_root.addChild(QTreeWidgetItem(["Encapsulation Type: Enthernet (1)"]))
-        frame_root.addChild(QTreeWidgetItem(["TimeStamps: " + packet[0]]))
-        frame_root.addChild(QTreeWidgetItem(["Frame Number: " + str(row_num)]))
-        frame_root.addChild(QTreeWidgetItem(["Frame Lenght: " + packet[1]]))
+        frame_root.addChild(QTreeWidgetItem(["TimeStamps: " + ptime]))
+        frame_root.addChild(QTreeWidgetItem(["Frame Number: " + str(row_num+1)]))
+        frame_root.addChild(QTreeWidgetItem(["Frame Lenght: " + plen]))
         self.details_tree.addTopLevelItem(frame_root)
+        for k, v in pk.items():
+            if k not in ["FP", "Info", "Others"]:
+                tmp_root = QTreeWidgetItem([k])
+                for ki, vi in v.items():
+                    tmp_root.addChild(QTreeWidgetItem([ki + ": " + vi]))
+                self.details_tree.addTopLevelItem(tmp_root)
 
     def row_selected(self):
         sender = self.sender()
         row_num = sender.currentRow()
         self.details_tree.clear()
         self.set_tree_row(row_num)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
