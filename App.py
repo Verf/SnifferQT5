@@ -13,8 +13,8 @@ class AppWindow(QDialog, Ui_Main):
     def __init__(self):
         super(AppWindow, self).__init__()
         self.device = None
+        self.filter = ""
         self.thread = None
-        self.filter_cmd = ["IPv4", "TCP", "UDP", "ICMP", "ARP"]
         self.packet_list = []
         self.setupUi(self)
         self.init_ui()
@@ -49,7 +49,7 @@ class AppWindow(QDialog, Ui_Main):
             dev = self.device_cbox.currentText()
             if dev:
                 self.device = dev
-                self.thread = Sniffer(dev)
+                self.thread = Sniffer(self.device, self.filter)
                 self.thread.sig.connect(self.pack_receive)
                 self.thread.start()
             else:
@@ -58,12 +58,8 @@ class AppWindow(QDialog, Ui_Main):
             self.thread.stop()
 
     def filter_clicked(self):
-        while self.packet_table.rowCount() > 0:
-            self.packet_table.removeRow(0)
-        filter_text = self.filter_input.text().upper()
-        if filter_text:
-            for p in self.packet_list:
-                pk = p[2]
+        print(self.filter_input.text())
+        self.filter = str(self.filter_input.text())
 
     def pack_receive(self):
         sender = self.sender()

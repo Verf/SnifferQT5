@@ -8,14 +8,18 @@ import pcapy
 class Sniffer(QThread):
     sig = pyqtSignal()
 
-    def __init__(self, dev, parent=None):
+    def __init__(self, dev, filt, parent=None):
         super(Sniffer, self).__init__(parent)
         self._run = True
         self._dev = dev
+        self._filt = filt
         self.pack_list = []
 
     def run(self):
         cap = pcapy.open_live(self._dev, 0, 1, 0)
+        if self._filt:
+            print(self._filt)
+            cap.setfilter(self._filt)
         start_time = datetime.now()
         while self._run:
             header, packet = cap.next()
