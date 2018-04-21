@@ -2,6 +2,7 @@
 # coding: utf-8
 from struct import unpack
 from collections import OrderedDict
+import binascii
 
 
 def b2a(ip_bytes):
@@ -19,6 +20,17 @@ def tf2s(flags):
     for i in range(6):
         if flags[i] == '1':
             res.append(fd[i+1])
+    return res
+
+def h2a(raw):
+    res = ""
+    for i in range(0, len(raw), 2):
+        h = raw[i:i+2]
+        n = int(h, 16)
+        if 31<n<127:
+            res += chr(n)
+        else:
+            res += ' '
     return res
 
 
@@ -142,6 +154,8 @@ class Praser:
         tcp["Window Size"] = str(int(header[5].hex(), 16))
         tcp["Checksum"] = "0x" + header[6].hex()
         tcp["Urgent Point"] = str(int(header[7].hex(), 16))
+        hex_data = raw[int(tcp_feature[:4], 2)*4:].hex()
+        tcp["Data"] = h2a(hex_data)
         return tcp
 
     def prase_udp(self, raw):
@@ -151,5 +165,7 @@ class Praser:
         udp["Destination Port"] = str(int(header[1].hex(), 16))
         udp["Header Length"] = str(int(header[2].hex(), 16))
         udp["Checksum"] = "0x" + header[3].hex()
+        hex_data = raw[8:].hex()
+        udp["Data"] = h2a(hex_data)
         return udp
  

@@ -2,7 +2,7 @@
 # coding: utf-8
 import sys
 from PyQt5.QtWidgets import QDialog, QApplication, \
-        QTableWidget, QTableWidgetItem, QTreeWidgetItem
+        QTableWidget, QTableWidgetItem, QTreeWidgetItem, QLabel
 from Gui import Ui_Main
 from Sniffer import Sniffer
 from Praser import Praser
@@ -14,6 +14,7 @@ class AppWindow(QDialog, Ui_Main):
         super(AppWindow, self).__init__()
         self.device = None
         self.thread = None
+        self.filter_cmd = ["IPv4", "TCP", "UDP", "ICMP", "ARP"]
         self.packet_list = []
         self.setupUi(self)
         self.init_ui()
@@ -31,6 +32,7 @@ class AppWindow(QDialog, Ui_Main):
         # Packet Table
         self.packet_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.packet_table.setColumnCount(6)
+        self.packet_table.horizontalHeader().setStretchLastSection(True)
         self.packet_table.setHorizontalHeaderLabels([
             "Time",
             "Source",
@@ -56,7 +58,12 @@ class AppWindow(QDialog, Ui_Main):
             self.thread.stop()
 
     def filter_clicked(self):
-        pass
+        while self.packet_table.rowCount() > 0:
+            self.packet_table.removeRow(0)
+        filter_text = self.filter_input.text().upper()
+        if filter_text:
+            for p in self.packet_list:
+                pk = p[2]
 
     def pack_receive(self):
         sender = self.sender()
@@ -69,6 +76,12 @@ class AppWindow(QDialog, Ui_Main):
         pk = prs.packet
         packet = [ptime, plen, pk]
         self.packet_list.append(packet)
+        self.set_table(packet)
+
+    def set_table(self, packet):
+        ptime = packet[0]
+        plen = packet[1]
+        pk = packet[2]
         if pk["FP"][0] == "0":
             # IP
             self.set_table_row(
@@ -113,6 +126,8 @@ class AppWindow(QDialog, Ui_Main):
         plen = pack[1]
         pk = pack[2]
         frame_root = QTreeWidgetItem(["Frame {0}: {1} byte on {2}".format(str(row_num+1), plen, self.device)])
+        label = QLabel("Descriptions")
+        label.setWordWrap(True)
         frame_root.addChild(QTreeWidgetItem(["Interface Name: " + self.device]))
         frame_root.addChild(QTreeWidgetItem(["Encapsulation Type: Enthernet (1)"]))
         frame_root.addChild(QTreeWidgetItem(["TimeStamps: " + ptime]))
