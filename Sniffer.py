@@ -18,7 +18,6 @@ class Sniffer(QThread):
     def run(self):
         cap = pcapy.open_live(self._dev, 0, 1, 0)
         if self._filt:
-            print(self._filt)
             cap.setfilter(self._filt)
         start_time = datetime.now()
         while self._run:

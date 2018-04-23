@@ -1,7 +1,8 @@
 # /usr/bin/env python3
 # coding: utf-8
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
+
 
 class Ui_Main(object):
     def setupUi(self, Main):
@@ -33,14 +34,23 @@ class Ui_Main(object):
         self.filter_button.setObjectName("filter_button")
         self.control_vbox.addWidget(self.filter_button)
         self.main_layout.addLayout(self.control_vbox)
-        
+
         self.packet_table = QtWidgets.QTableWidget(Main)
         self.packet_table.setObjectName("packet_table")
         self.main_layout.addWidget(self.packet_table)
 
+        self.details_hbox = QtWidgets.QHBoxLayout()
+        self.details_hbox.setObjectName("details_hbox")
+
         self.details_tree = QtWidgets.QTreeWidget(Main)
         self.details_tree.setObjectName("details_tree")
-        self.main_layout.addWidget(self.details_tree)
+        self.details_hbox.addWidget(self.details_tree)
+
+        self.raw_text = QtWidgets.QTextEdit(Main)
+        self.raw_text.setObjectName("raw_text")
+        self.details_hbox.addWidget(self.raw_text)
+
+        self.main_layout.addLayout(self.details_hbox)
 
         self.retranslateUi(Main)
         QtCore.QMetaObject.connectSlotsByName(Main)

@@ -7,6 +7,7 @@ from Gui import Ui_Main
 from Sniffer import Sniffer
 from Praser import Praser
 import pcapy
+import Tools
 
 
 class AppWindow(QDialog, Ui_Main):
@@ -43,9 +44,15 @@ class AppWindow(QDialog, Ui_Main):
         self.packet_table.clicked.connect(self.row_selected)
         # Details Tree
         self.details_tree.setHeaderHidden(True)
+        # raw text
+        self.raw_text.setFontFamily("Monospace")
 
     def sniff_control(self, pressed):
         if pressed:
+            if self.packet_list:
+                self.packet_list = []
+                while self.packet_table.rowCount() > 0:
+                    self.packet_table.removeRow(0)
             dev = self.device_cbox.currentText()
             if dev:
                 self.device = dev
@@ -58,7 +65,6 @@ class AppWindow(QDialog, Ui_Main):
             self.thread.stop()
 
     def filter_clicked(self):
-        print(self.filter_input.text())
         self.filter = str(self.filter_input.text())
 
     def pack_receive(self):
@@ -91,8 +97,8 @@ class AppWindow(QDialog, Ui_Main):
             # ARP
             self.set_table_row(
                     ptime,
-                    pk["ARP"]["Source"],
-                    pk["ARP"]["Destination"],
+                    pk["ARP"]["Sender IP"],
+                    pk["ARP"]["Target IP"],
                     "ARP",
                     plen,
                     pk["Info"])
@@ -131,17 +137,46 @@ class AppWindow(QDialog, Ui_Main):
         frame_root.addChild(QTreeWidgetItem(["Frame Lenght: " + plen]))
         self.details_tree.addTopLevelItem(frame_root)
         for k, v in pk.items():
-            if k not in ["FP", "Info", "Others"]:
+            if k not in ["FP", "Info", "Others", "Raw"]:
                 tmp_root = QTreeWidgetItem([k])
                 for ki, vi in v.items():
-                    tmp_root.addChild(QTreeWidgetItem([ki + ": " + vi]))
+                    item = QTreeWidgetItem()
+                    word = QLabel(ki + ": " + vi)
+                    if ki == "Data":
+                        word.setWordWrap(True)
+                        wlen = round(len(vi)/170)
+                        word.setFixedHeight(word.fontMetrics().height() * wlen)
+                    tmp_root.addChild(item)
+                    self.details_tree.setItemWidget(item, 0, word)
                 self.details_tree.addTopLevelItem(tmp_root)
+
+    def set_raw_text(self, row_num):
+        pack = self.packet_list[row_num]
+        pk = pack[2]
+        raw_text = pk["Raw"]
+        line_num = 0
+        for i in range(0, len(raw_text), 32):
+            line_num += 1
+            raw = raw_text[i:i+32]
+            tmp = []
+            for j in range(0, len(raw), 2):
+                tmp.append(raw[j:j+2])
+            fbt = " ".join(tmp[:8])
+            lbt = " ".join(tmp[8:])
+            tmp_tex = "{0}  {1}".format(fbt, lbt)
+            if len(tmp_tex) < 49:
+                tmp_tex += " "*(49-len(tmp_tex))
+            tmp_tex += "    " + Tools.h2a(raw)
+            tex = "0x{0:04x}  {1}".format(16*line_num, tmp_tex)
+            self.raw_text.append(tex)
 
     def row_selected(self):
         sender = self.sender()
         row_num = sender.currentRow()
         self.details_tree.clear()
+        self.raw_text.clear()
         self.set_tree_row(row_num)
+        self.set_raw_text(row_num)
 
 
 if __name__ == '__main__':
